@@ -1,2 +1,5 @@
-playground
+playground.ipynb
 .env
+Dockerfile
+.dockerignore
+docker-compose.yml

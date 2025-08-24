@@ -8,6 +8,7 @@ fastapi = "==0.116.1"
 pydantic = {extras = ["email"], version = "==2.11.7"}
 uvicorn = "==0.35.0"
 pytz = "==2025.2"
+redis = "==6.4.0"
 
 [dev-packages]
 ipykernel = "*"
