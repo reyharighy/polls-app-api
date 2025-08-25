@@ -1,7 +1,7 @@
 """Module to define all HTTP endpoints related to the poll model."""
 
 from uuid import UUID
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from app.models.poll import PollCreate
 from app.services.utils import save_poll, get_poll
 
@@ -21,12 +21,4 @@ def create_poll(poll: PollCreate):
 @router.get("/{poll_id}")
 def show_poll(poll_id: UUID):
     """Endpoint to retrieve a poll."""
-    poll = get_poll(poll_id=poll_id)
-
-    if not poll:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Poll with id {poll_id} is not found"
-        )
-
-    return poll
+    return get_poll(poll_id=poll_id)

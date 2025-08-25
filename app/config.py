@@ -8,6 +8,10 @@ APPLICATION_METADATA = {
         {
             "name": "polls",
             "description": "All HTTP endpoints related to the poll model."
+        },
+        {
+            "name": "votes",
+            "description": "All HTTP endpoints related to the vote model."
         }
     ],
     "contact": {
