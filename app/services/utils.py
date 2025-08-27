@@ -25,7 +25,7 @@ def get_poll(poll_id: UUID, indexing: bool = False) -> Poll:
     """Method to retrieve poll data from redis given the specified poll_id"""
     poll_json = redis_client.get(f"poll:{poll_id}")
 
-    if not poll_json and not indexing:
+    if not indexing and not poll_json:
         raise HTTPException(
             status_code=404,
             detail={"msg": f"Poll of id {poll_id} is not found"}
@@ -69,7 +69,7 @@ def get_all_polls():
 
     for key in keys:
         poll = get_poll(
-            poll_id=key.replace("poll:", ""),
+            poll_id=str(key).replace("poll:", ""), # type: ignore
             indexing=True
         )
 
@@ -81,12 +81,13 @@ def save_vote(vote: Vote):
     """Method to save vote data into redis"""
     vote_json = vote.model_dump_json()
     redis_client.set(f"vote:{vote.id}", vote_json)
+    redis_client.sadd(f"poll:{vote.poll.id}:voters", vote.voter.email)
 
 def get_vote(poll_id: UUID, vote_id: UUID, indexing: bool = False) -> Vote:
     """Method to retrieve vote data from redis given the specified vote_id"""
     vote_json = redis_client.get(f"vote:{vote_id}")
 
-    if not vote_json and not indexing:
+    if not indexing and not vote_json:
         raise HTTPException(
             status_code=404,
             detail={"msg": f"Vote of id {vote_id} is not found"}
@@ -94,7 +95,7 @@ def get_vote(poll_id: UUID, vote_id: UUID, indexing: bool = False) -> Vote:
 
     vote = Vote.model_validate_json(vote_json) # type: ignore
 
-    if vote.poll.id != poll_id and not indexing:
+    if not indexing and vote.poll.id != poll_id:
         raise HTTPException(
             status_code=409,
             detail={"msg": f"Vote of id {vote_id} does not belong to poll of id {poll_id}"}
@@ -122,9 +123,7 @@ def get_all_votes(poll_id: UUID):
 
 def validate_voter(poll_id: UUID, email: str):
     """Validate if the current voter makes the first vote"""
-    votes: list[Vote] = get_all_votes(poll_id=poll_id)
-
-    if email in [vote_.voter.email for vote_ in votes]:
+    if redis_client.sismember(f"poll:{poll_id}:voters", email):
         raise HTTPException(
             status_code=409,
             detail={"msg": f"Voter of email {email} has already voted in poll of id {poll_id}"}
