@@ -3,7 +3,7 @@
 from uuid import UUID
 from fastapi import APIRouter
 from app.models.vote import VoteCreate
-from app.services.utils import save_vote, get_vote, get_poll, get_option_description
+from app.services.utils import get_poll, get_option_description, save_vote, get_vote, get_all_votes
 
 router = APIRouter()
 
@@ -36,3 +36,8 @@ def show_vote(poll_id: UUID, vote_id: UUID):
         poll_id=poll_id,
         vote_id=vote_id
     )
+
+@router.get("")
+def index_vote(poll_id: UUID):
+    """Endpoint to retrieve all polls."""
+    return get_all_votes(poll_id=poll_id)

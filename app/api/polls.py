@@ -3,7 +3,7 @@
 from uuid import UUID
 from fastapi import APIRouter
 from app.models.poll import PollCreate
-from app.services.utils import save_poll, get_poll
+from app.services.utils import save_poll, get_poll, get_all_polls
 
 router = APIRouter()
 
@@ -22,3 +22,8 @@ def create_poll(poll: PollCreate):
 def show_poll(poll_id: UUID):
     """Endpoint to retrieve a poll."""
     return get_poll(poll_id=poll_id)
+
+@router.get("")
+def index_poll():
+    """Endpoint to retrieve all polls."""
+    return get_all_polls()

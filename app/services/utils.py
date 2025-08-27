@@ -10,18 +10,22 @@ from app.models.vote import Vote
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = os.getenv("REDIS_PORT")
 
-redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT) # type: ignore
+redis_client = Redis(
+    host=REDIS_HOST, # type: ignore
+    port=REDIS_PORT, # type: ignore
+    decode_responses=True
+)
 
 def save_poll(poll: Poll):
     """Method to save poll data into redis"""
     poll_json = poll.model_dump_json()
     redis_client.set(f"poll:{poll.id}", poll_json)
 
-def get_poll(poll_id: UUID) -> Poll:
+def get_poll(poll_id: UUID, indexing: bool = False) -> Poll:
     """Method to retrieve poll data from redis given the specified poll_id"""
     poll_json = redis_client.get(f"poll:{poll_id}")
 
-    if not poll_json:
+    if not poll_json and not indexing:
         raise HTTPException(
             status_code=404,
             detail={"msg": f"Poll of id {poll_id} is not found"}
@@ -57,16 +61,32 @@ def get_option_description(poll: Poll, option_id: UUID) -> str:
 
     return option_description
 
+def get_all_polls():
+    """Method to retrieve all polls data from redis"""
+    all_polls = []
+
+    _, keys = redis_client.scan(match="poll:*") # type: ignore
+
+    for key in keys:
+        poll = get_poll(
+            poll_id=key.replace("poll:", ""),
+            indexing=True
+        )
+
+        all_polls.append(poll)
+
+    return all_polls
+
 def save_vote(vote: Vote):
     """Method to save vote data into redis"""
     vote_json = vote.model_dump_json()
     redis_client.set(f"vote:{vote.id}", vote_json)
 
-def get_vote(poll_id: UUID, vote_id: UUID) -> Vote:
+def get_vote(poll_id: UUID, vote_id: UUID, indexing: bool = False) -> Vote:
     """Method to retrieve vote data from redis given the specified vote_id"""
     vote_json = redis_client.get(f"vote:{vote_id}")
 
-    if not vote_json:
+    if not vote_json and not indexing:
         raise HTTPException(
             status_code=404,
             detail={"msg": f"Vote of id {vote_id} is not found"}
@@ -74,10 +94,28 @@ def get_vote(poll_id: UUID, vote_id: UUID) -> Vote:
 
     vote = Vote.model_validate_json(vote_json) # type: ignore
 
-    if vote.poll.id != poll_id:
+    if vote.poll.id != poll_id and not indexing:
         raise HTTPException(
-            status_code=400,
+            status_code=409,
             detail={"msg": f"Vote of id {vote_id} does not belong to poll of id {poll_id}"}
         )
 
     return vote
+
+def get_all_votes(poll_id: UUID):
+    """Method to retrieve all votes data from redis"""
+    all_votes = []
+
+    _, keys = redis_client.scan(match="vote:*") # type: ignore
+
+    for key in keys:
+        vote: Vote = get_vote(
+            poll_id=poll_id,
+            vote_id=key.replace("vote:", ""),
+            indexing=True
+        )
+
+        if vote.poll.id == poll_id:
+            all_votes.append(vote)
+
+    return all_votes
