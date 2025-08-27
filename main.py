@@ -13,4 +13,4 @@ app = FastAPI(
 )
 
 app.include_router(polls.router, prefix="/polls", tags=["polls"])
-app.include_router(votes.router, prefix="/votes", tags=["votes"])
+app.include_router(votes.router, prefix="/polls/{poll_id}/votes", tags=["votes"])
