@@ -119,3 +119,13 @@ def get_all_votes(poll_id: UUID):
             all_votes.append(vote)
 
     return all_votes
+
+def validate_voter(poll_id: UUID, email: str):
+    """Validate if the current voter makes the first vote"""
+    votes: list[Vote] = get_all_votes(poll_id=poll_id)
+
+    if email in [vote_.voter.email for vote_ in votes]:
+        raise HTTPException(
+            status_code=409,
+            detail={"msg": f"Voter of email {email} has already voted in poll of id {poll_id}"}
+        )
