@@ -18,7 +18,7 @@ def save_poll(poll: Poll):
     redis_client.set(f"poll:{poll.id}", poll_json)
 
 def get_poll(poll_id: UUID) -> Poll:
-    """Method to retrieve poll data from redis based-on poll_id"""
+    """Method to retrieve poll data from redis given the specified poll_id"""
     poll_json = redis_client.get(f"poll:{poll_id}")
 
     if not poll_json:
@@ -30,7 +30,7 @@ def get_poll(poll_id: UUID) -> Poll:
     return Poll.model_validate_json(poll_json) # type: ignore
 
 def check_poll_is_active(poll: Poll):
-    """Check if the poll is still active given specified option_id"""
+    """Check if the poll is still active given the specified poll_id from path parameter"""
     if not poll.is_active():
         raise HTTPException(
             status_code=410,
@@ -61,3 +61,23 @@ def save_vote(vote: Vote):
     """Method to save vote data into redis"""
     vote_json = vote.model_dump_json()
     redis_client.set(f"vote:{vote.id}", vote_json)
+
+def get_vote(poll_id: UUID, vote_id: UUID) -> Vote:
+    """Method to retrieve vote data from redis given the specified vote_id"""
+    vote_json = redis_client.get(f"vote:{vote_id}")
+
+    if not vote_json:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg": f"Vote of id {vote_id} is not found"}
+        )
+
+    vote = Vote.model_validate_json(vote_json) # type: ignore
+
+    if vote.poll.id != poll_id:
+        raise HTTPException(
+            status_code=400,
+            detail={"msg": f"Vote of id {vote_id} does not belong to poll of id {poll_id}"}
+        )
+
+    return vote
