@@ -17,7 +17,7 @@ def create_vote(poll_id: UUID, vote: VoteCreate):
     if not option_description:
         raise HTTPException(
             status_code=404,
-            detail={"msg":f"Choice of id {vote.option_id} is not found in poll of id {poll.id}"}
+            detail={"msg":f"Option of id {vote.option_id} is not found in poll of id {poll.id}"}
         )
 
     new_vote = vote.create(

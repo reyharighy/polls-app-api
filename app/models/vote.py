@@ -3,7 +3,6 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 from pydantic import BaseModel, EmailStr, Field
-from pytz import timezone
 
 # Intra-package imports
 from .poll import Poll
@@ -47,4 +46,4 @@ class Vote(BaseModel):
     poll: VotePoll
     option: VoteOption
     voter: Voter
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone('Asia/Jakarta')))
+    created_at: datetime = Field(default_factory=datetime.now)

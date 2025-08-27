@@ -4,7 +4,6 @@ from uuid import UUID, uuid4
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
-from pytz import timezone
 
 # Intra-package imports
 from .option import OptionCreate, Option
@@ -18,8 +17,8 @@ class PollCreate(BaseModel):
     @field_validator("expires_at")
     @classmethod
     def validate_expires_at(cls, expires_at):
-        """Validate if the expired date is in the future if provided."""
-        if expires_at and expires_at < datetime.now(timezone('Asia/Jakarta')):
+        """Validate the expires_at should be in the future if provided."""
+        if expires_at and expires_at < datetime.now():
             raise ValueError("expired time should be set in the future")
 
         return expires_at
@@ -43,4 +42,4 @@ class Poll(BaseModel):
     title: str
     options: List[Option]
     expires_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone('Asia/Jakarta')))
+    created_at: datetime = Field(default_factory=datetime.now)
