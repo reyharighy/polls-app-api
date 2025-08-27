@@ -16,10 +16,14 @@ class PollCreate(BaseModel):
 
     @field_validator("expires_at")
     @classmethod
-    def validate_expires_at(cls, expires_at):
+    def validate_expires_at(cls, expires_at: datetime):
         """Validate the expires_at should be in the future if provided."""
-        if expires_at and expires_at < datetime.now():
-            raise ValueError("expired time should be set in the future")
+        if expires_at:
+            if expires_at.tzinfo:
+                raise ValueError("try not to provide timezone")
+
+            if expires_at < datetime.now():
+                raise ValueError("expired time should be set in the future")
 
         return expires_at
 
@@ -43,3 +47,10 @@ class Poll(BaseModel):
     options: List[Option]
     expires_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.now)
+
+    def is_active(self) -> bool:
+        """Check if the poll is still active."""
+        if self.expires_at:
+            return self.expires_at > datetime.now()
+
+        return True
