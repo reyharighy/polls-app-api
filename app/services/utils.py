@@ -29,6 +29,34 @@ def get_poll(poll_id: UUID) -> Poll:
 
     return Poll.model_validate_json(poll_json) # type: ignore
 
+def check_poll_is_active(poll: Poll):
+    """Check if the poll is still active given specified option_id"""
+    if not poll.is_active():
+        raise HTTPException(
+            status_code=410,
+            detail={"msg": f"Poll of id {poll.id} has expired"}
+        )
+
+def get_option_description(poll: Poll, option_id: UUID) -> str:
+    """
+    Get the option description with the following requirements:
+    1. Check if the given poll is still active.
+    2. Check if the option_id is valid given the specified poll.
+    3. If option is valid, return the option description.
+    """
+
+    check_poll_is_active(poll=poll)
+    options = {choice.id:choice.description for choice in poll.options}
+    option_description = options.get(option_id)
+
+    if not option_description:
+        raise HTTPException(
+            status_code=404,
+            detail={"msg":f"Option of id {option_id} is not found in poll of id {poll.id}"}
+        )
+
+    return option_description
+
 def save_vote(vote: Vote):
     """Method to save vote data into redis"""
     vote_json = vote.model_dump_json()
