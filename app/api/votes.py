@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter
 from app.models.vote import VoteCreate
 from app.services.utils import (
-    get_poll, get_option_description, 
-    save_vote, get_vote, get_all_votes, 
-    validate_voter
+    get_poll, get_option_description,
+    save_vote, get_vote, get_all_votes,
+    validate_poll_active, validate_voter
 )
 
 router = APIRouter()
@@ -14,12 +14,14 @@ router = APIRouter()
 @router.post("/create")
 def create_vote(poll_id: UUID, vote: VoteCreate):
     """Endpoint to create a new vote upon a poll."""
+    poll = get_poll(poll_id=poll_id)
+
+    validate_poll_active(poll=poll)
+
     validate_voter(
         poll_id=poll_id,
         email=vote.voter.email
     )
-
-    poll = get_poll(poll_id=poll_id)
 
     option_description = get_option_description(
         poll=poll,
