@@ -155,3 +155,13 @@ def vote_results(poll: Poll) -> Tuple[int, List[ResultVote]]:
         vote_values.append(result_vote)
 
     return (total_votes, vote_values)
+
+def delete_poll(poll_id: UUID):
+    """Delete a poll and all related information given the specified poll_id."""
+    while True:
+        cursor, keys = redis_client.scan(match=f"poll:{poll_id}*") # type: ignore
+
+        redis_client.delete(*keys)
+
+        if cursor == 0:
+            break

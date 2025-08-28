@@ -3,7 +3,7 @@
 from uuid import UUID
 from fastapi import APIRouter
 from app.models.poll import PollCreate
-from app.services.utils import save_poll, get_poll, get_all_polls
+from app.services.utils import save_poll, get_poll, get_all_polls, delete_poll
 
 router = APIRouter()
 
@@ -27,3 +27,15 @@ def show_poll(poll_id: UUID):
 def index_poll():
     """Endpoint to retrieve all polls."""
     return get_all_polls()
+
+@router.delete("/{poll_id}")
+def destroy_poll(poll_id: UUID):
+    """Endpoint to retrieve a poll."""
+    poll = get_poll(poll_id=poll_id)
+
+    delete_poll(poll_id=poll.id)
+
+    return {
+        "msg": "Poll deleted successfully",
+        "poll": poll
+    }
