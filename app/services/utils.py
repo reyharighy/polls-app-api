@@ -3,11 +3,12 @@
 import os
 import re
 from uuid import UUID
-from typing import List
+from typing import List, Tuple, Dict
 from redis import Redis
 from fastapi import HTTPException
 from app.models.poll import Poll
 from app.models.vote import Vote
+from app.models.result import ResultVote
 
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = os.getenv("REDIS_PORT")
@@ -19,13 +20,13 @@ redis_client = Redis(
 )
 
 def save_poll(poll: Poll):
-    """Method to save poll data into redis"""
+    """Method to save poll data into redis."""
     poll_json = poll.model_dump_json()
     redis_client.set(f"poll:{poll.id}", poll_json)
 
 def get_poll(poll_id: UUID, indexing: bool = False) -> Poll:
-    """Method to retrieve poll data from redis given the specified poll_id"""
-    poll_json = redis_client.get(name=f"poll:{poll_id}")
+    """Method to retrieve poll data from redis given the specified poll_id."""
+    poll_json = redis_client.get(f"poll:{poll_id}")
 
     if not indexing and not poll_json:
         raise HTTPException(
@@ -36,7 +37,7 @@ def get_poll(poll_id: UUID, indexing: bool = False) -> Poll:
     return Poll.model_validate_json(poll_json) # type: ignore
 
 def validate_poll_active(poll: Poll):
-    """Validate if the poll is still active"""
+    """Validate if the poll is still active."""
     if not poll.is_active():
         raise HTTPException(
             status_code=410,
@@ -44,7 +45,7 @@ def validate_poll_active(poll: Poll):
         )
 
 def validate_voter(poll_id: UUID, email: str):
-    """Validate if the current voter makes the first vote"""
+    """Validate if the current voter makes the first vote."""
     if redis_client.sismember(f"poll:{poll_id}:emails", email):
         raise HTTPException(
             status_code=409,
@@ -52,7 +53,7 @@ def validate_voter(poll_id: UUID, email: str):
         )
 
 def get_option_description(poll: Poll, option_id: UUID) -> str:
-    """Get the option description given the specified poll and option_id"""
+    """Get the option description given the specified poll and option_id."""
     options = {option.id:option.description for option in poll.options}
     option_description = options.get(option_id)
 
@@ -65,7 +66,7 @@ def get_option_description(poll: Poll, option_id: UUID) -> str:
     return option_description
 
 def get_all_polls() -> List[Poll]:
-    """Method to retrieve all polls data from redis"""
+    """Method to retrieve all polls data from redis."""
     all_polls = []
     poll_only_pattern = re.compile(r"^poll:[A-Fa-f0-9-]+$")
 
@@ -91,14 +92,15 @@ def get_all_polls() -> List[Poll]:
     return all_polls
 
 def save_vote(vote: Vote):
-    """Method to save vote data into redis"""
+    """Method to save vote data into redis."""
     vote_json = vote.model_dump_json()
     redis_client.set(f"vote:{vote.id}", vote_json)
     redis_client.sadd(f"poll:{vote.poll.id}:vote_ids", str(vote.id))
     redis_client.sadd(f"poll:{vote.poll.id}:emails", vote.voter.email)
+    redis_client.hincrby(f"poll:{vote.poll.id}:votes", str(vote.option.id), 1)
 
 def get_vote(poll_id: UUID, vote_id: UUID, indexing: bool = False) -> Vote:
-    """Method to retrieve vote data from redis given the specified vote_id"""
+    """Method to retrieve vote data from redis given the specified vote_id."""
     vote_json = redis_client.get(f"vote:{vote_id}")
 
     if not indexing and not vote_json:
@@ -116,7 +118,7 @@ def get_vote(poll_id: UUID, vote_id: UUID, indexing: bool = False) -> Vote:
     return Vote.model_validate_json(vote_json) # type: ignore
 
 def get_all_votes(poll_id: UUID) -> List[Vote]:
-    """Method to retrieve all votes data from redis"""
+    """Method to retrieve all votes data from redis."""
     all_votes = []
 
     vote_ids: List[UUID] = redis_client.smembers(f"poll:{poll_id}:vote_ids") # type: ignore
@@ -131,3 +133,25 @@ def get_all_votes(poll_id: UUID) -> List[Vote]:
         all_votes.append(vote)
 
     return all_votes
+
+def vote_results(poll: Poll) -> Tuple[int, List[ResultVote]]:
+    """Method to retrieve the voting result given the specified poll_id."""
+    total_votes = 0
+    vote_values: List[ResultVote] = []
+
+    options = {str(option.id):option for option in poll.options}
+
+    result_dict: Dict[str, str] = redis_client.hgetall(f"poll:{poll.id}:votes") # type: ignore
+
+    for option_id, option in options.items():
+        count = int(result_dict.get(option_id, 0))
+        total_votes += count
+
+        result_vote = ResultVote(
+            count=count,
+            option=option
+        )
+
+        vote_values.append(result_vote)
+
+    return (total_votes, vote_values)
