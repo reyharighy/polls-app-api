@@ -30,7 +30,7 @@ def index_poll():
 
 @router.delete("/{poll_id}")
 def destroy_poll(poll_id: UUID):
-    """Endpoint to retrieve a poll."""
+    """Endpoint to delete a poll."""
     poll = get_poll(poll_id=poll_id)
 
     delete_poll(poll_id=poll.id)
