@@ -2,6 +2,7 @@
 
 import os
 from uuid import UUID
+from typing import List
 from redis import Redis
 from fastapi import HTTPException
 from app.models.poll import Poll
@@ -61,7 +62,7 @@ def get_option_description(poll: Poll, option_id: UUID) -> str:
 
     return option_description
 
-def get_all_polls():
+def get_all_polls() -> List[Poll]:
     """Method to retrieve all polls data from redis"""
     all_polls = []
 
@@ -103,7 +104,7 @@ def get_vote(poll_id: UUID, vote_id: UUID, indexing: bool = False) -> Vote:
 
     return vote
 
-def get_all_votes(poll_id: UUID):
+def get_all_votes(poll_id: UUID) -> List[Vote]:
     """Method to retrieve all votes data from redis"""
     all_votes = []
 
