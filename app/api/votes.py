@@ -43,12 +43,16 @@ def create_vote(poll_id: UUID, vote: VoteCreate):
 @router.get("/{vote_id}")
 def show_vote(poll_id: UUID, vote_id: UUID):
     """Endpoint to retrieve a vote."""
+    poll = get_poll(poll_id=poll_id)
+
     return get_vote(
-        poll_id=poll_id,
+        poll_id=poll.id,
         vote_id=vote_id
     )
 
 @router.get("")
 def index_vote(poll_id: UUID):
     """Endpoint to retrieve all votes."""
-    return get_all_votes(poll_id=poll_id)
+    poll = get_poll(poll_id=poll_id)
+
+    return get_all_votes(poll_id=poll.id)
